@@ -46,9 +46,7 @@ def imu_command_handler(signum, frame):
 signal.signal(signal.SIGINT, imu_command_handler)
 
 if __name__ == "__main__":
-    if imuSerial.inWaiting():
-        print("Device is in Waiting...\n Please Restart Program or Unplug IMU (Serial Device)")
-    else:
+    try:
         # Always request the status first, DON'T try to 'set' interfaces without first
         # getting the status from the IMU
         vmu931_utils.get_imu_status(imuSerial)
@@ -73,47 +71,58 @@ if __name__ == "__main__":
         print("IMU Interface Values Set, Grabbing IMU Data")
 
         while running:
-            if execute_command == False:
-                data = vmu931_utils.get_imu_data(imuSerial)
-            else:
-                if command == 'exit':
-                    break
+            try:
+                if execute_command == False:
+                    data = vmu931_utils.get_imu_data(imuSerial)
+                else:
+                    if command == 'exit':
+                        break
 
-                elif command.startswith('set'):
-                    args = command.split(" ")
+                    elif command.startswith('set'):
+                        args = command.split(" ")
 
-                    if len(args) == 3:
-                        vmu931_utils.set_imu_interface(imuSerial, args[1],
-                                                       True if args[2].lower() == 'on' else False)
+                        if len(args) == 3:
+                            vmu931_utils.set_imu_interface(imuSerial, args[1],
+                                                           True if args[2].lower() == 'on' else False)
 
-                elif command.startswith('res'):
-                    args = command.split(" ")
+                    elif command.startswith('res'):
+                        args = command.split(" ")
 
-                    if len(args) == 3:
-                        if args[1] == 'accel':
-                            vmu931_utils.set_accelerometer_resolution(imuSerial, int(args[2]))
+                        if len(args) == 3:
+                            if args[1] == 'accel':
+                                vmu931_utils.set_accelerometer_resolution(imuSerial, int(args[2]))
 
-                        elif args[1] == 'gyro':
-                            vmu931_utils.set_gyro_resolution(imuSerial, int(args[2]))
+                            elif args[1] == 'gyro':
+                                vmu931_utils.set_gyro_resolution(imuSerial, int(args[2]))
 
-                elif command.startswith('get'):
-                    args = command.split(" ")
+                    elif command.startswith('get'):
+                        args = command.split(" ")
 
-                    if len(args) == 2 and args[1].lower() == 'status':
-                        vmu931_utils.get_imu_status(imuSerial)
+                        if len(args) == 2 and args[1].lower() == 'status':
+                            vmu931_utils.get_imu_status(imuSerial)
 
-                elif command.startswith('debug'):
-                    args = command.split(" ")
+                    elif command.startswith('debug'):
+                        args = command.split(" ")
 
-                    if len(args) == 2:
-                        vmu931_utils.Debug = True if args[1].lower() == 'on' else False
+                        if len(args) == 2:
+                            vmu931_utils.Debug = True if args[1].lower() == 'on' else False
 
-                elif command.startswith('errors'):
-                    args = command.split(" ")
+                    elif command.startswith('errors'):
+                        args = command.split(" ")
 
-                    if len(args) == 2:
-                        vmu931_utils.ShowErrors = True if args[1].lower() == 'on' else False
+                        if len(args) == 2:
+                            vmu931_utils.ShowErrors = True if args[1].lower() == 'on' else False
 
-                execute_command = False
+                    execute_command = False
+            except() as ex:
+                running = False
+                print(ex)
+                break
 
-    print("\nProgram Finished :D")
+    except() as err:
+        running = False
+        print(err)
+
+    finally:
+        if imuSerial is not None:
+            imuSerial.close()

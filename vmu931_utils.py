@@ -1,12 +1,12 @@
 import struct
 import sys
 from collections import namedtuple
+import serial
 
 """
 VMU931 Ref Guide: http://variense.com/Docs/VMU931/VMU931_UserGuide.pdf
 Adapted from: https://github.com/JosephRedfern/PyVMU
 """
-
 
 # VMU931 Terminal/Command Prompt instructions
 IMU_Instructions = """\nCommands to send to the IMU:
@@ -25,10 +25,9 @@ Debug Commands:
     errors <'on'|'off'>
 """
 
-
 # Debug flag and Device Status obj
-ShowErrors = True    # type: bool
-Debug = False         # type: bool
+ShowErrors = True  # type: bool
+Debug = False  # type: bool
 Device_Status = None  # type: Status
 
 # Mappings for commands to send to imu
@@ -80,13 +79,19 @@ def send_message(serial_device, message, update_status=True):
 
 
 # Set methods
-def set_imu_interface(serial_device, interface,  # type: str
+def set_imu_interface(serial_device,  # type: serial.Serial
+                      interface,  # type: str
                       state  # type: bool
                       ):
-
     interface = interface.lower()
-    assert Device_Status is not None, "Device Status is not Set"
-    assert interface in ToggleCommandMap.keys(), "Interface is invalid"
+
+    if Device_Status in None:
+        print("Device Status is not Set")
+        return
+
+    if interface not in ToggleCommandMap.keys():
+        print("Interface is invalid")
+        return
 
     if interface == 'accel':
         if Device_Status.accelerometer_streaming != state:
@@ -116,28 +121,35 @@ def set_imu_interface(serial_device, interface,  # type: str
 def toggle_imu_interface(serial_device, interface  # type: str
                          ):
     interface = interface.lower()
-    assert interface in ToggleCommandMap.keys(), "IMU interface invalid"
+
+    if interface not in ToggleCommandMap.keys():
+        print("IMU interface invalid")
+        return
 
     send_message(serial_device, message=ToggleCommandMap[interface], update_status=False)
 
 
 def can_set_imu_interface_resolution():
-    assert Device_Status is not None, "Device Status is None"
+    if Device_Status is not None:
+        print("Device Status is None")
+        return False
 
     if Device_Status.quaternions_streaming == True or \
-            Device_Status.euler_streaming == True or Device_Status.heading_streaming == True:
+            Device_Status.euler_streaming == True or \
+            Device_Status.heading_streaming == True:
         return False
     else:
         return True
 
 
 def set_gyro_resolution(serial_device, resolution):
-    if can_set_imu_interface_resolution():
+    if not can_set_imu_interface_resolution():
         print("Cannot set a custom resolution while Quaternions, Euler Angles or Heading is streaming data")
         return
 
-    assert resolution in GyroResolutionMapping.keys(), \
-        "Invalid gyroscope resolution, must be 250, 500, 1000 or 2000"
+    if resolution not in GyroResolutionMapping.keys():
+        print("Invalid gyroscope resolution, must be 250, 500, 1000 or 2000")
+        return
 
     if sys.version_info[0] < 3:
         command = b"var{}".format(GyroResolutionMapping[resolution])
@@ -152,8 +164,9 @@ def set_accelerometer_resolution(serial_device, resolution):
         print("Cannot set a custom resolution while Quaternions, Euler Angles or Heading is streaming data")
         return
 
-    assert resolution in AccelerometerResolutionMapping.keys(), \
-        "Invalid accelerometer resolution, must be 2, 4, 8 or 18"
+    if resolution not in AccelerometerResolutionMapping.keys():
+        print("Invalid accelerometer resolution, must be 2, 4, 8 or 18")
+        return
 
     if sys.version_info[0] < 3:
         command = b"var{}".format(AccelerometerResolutionMapping[resolution])
@@ -196,11 +209,11 @@ def get_status(data):
     low_output_rate = low_output & 0b00000001 != 0
 
     heading_streaming = data & 0b01000000 != 0
-    euler_streaming   = data & 0b00010000 != 0
-    mag_streaming     = data & 0b00001000 != 0
-    quat_streaming    = data & 0b00000100 != 0
-    gyro_streaming    = data & 0b00000010 != 0
-    acc_streaming     = data & 0b00000001 != 0
+    euler_streaming = data & 0b00010000 != 0
+    mag_streaming = data & 0b00001000 != 0
+    quat_streaming = data & 0b00000100 != 0
+    gyro_streaming = data & 0b00000010 != 0
+    acc_streaming = data & 0b00000001 != 0
 
     return Status(
         magnetometer_enabled=mag_status,
@@ -253,20 +266,21 @@ def get_imu_data(serial_device):
     global Device_Status, Debug
 
     try:
-        message_start = serial_device.read(1)
+        message_start = serial_device.read()
         message_start = struct.unpack("B", message_start)[0]
 
         if message_start == 0x01:
-            # Unsure why we have to subtract 4bytes from this... but we do.
-            message_size = serial_device.read(1)
+            #                                                 1byte           1byte,         1byte,        1byte
+            # subtract 4bytes to get size (message_size = message_size - (message_start + message_type + message_end)
+            message_size = serial_device.read()
             message_size = (struct.unpack("B", message_size)[0]) - 4
 
-            message_type = serial_device.read(1)
+            message_type = serial_device.read()
             message_type = struct.unpack("c", message_type)[0]
 
             message_data = serial_device.read(message_size)
 
-            message_end = serial_device.read(1)
+            message_end = serial_device.read()
             message_end = struct.unpack("B", message_end)[0]
 
             # If we have an invalid footer, skip this packet, otherwise continue.
@@ -313,5 +327,5 @@ def get_imu_data(serial_device):
                 return data
 
     except() as err:
-        print(err)
-        sys.exit(-1)
+        if ShowErrors:
+            print(err)

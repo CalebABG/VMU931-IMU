@@ -1,14 +1,21 @@
 #!/usr/bin/python
 
-# Please note that this project relies on PySerial package
-# Install PySerial if errors arise when trying to execute script
+"""
+Project relies on PySerial package
+    - pip install pyserial
+    - https://pypi.org/project/pyserial/
 
-from __future__ import print_function
+Python 2 and 3 Compatibility:
+    - pip install future
+    - https://python-future.org/compatible_idioms.html
+"""
+
 import serial
 import vmu931_utils
 import signal
 import sys
 import time
+from builtins import print, input
 
 OLD_PYTHON = sys.version_info[0] < 3
 
@@ -32,11 +39,7 @@ def imu_command_handler(signum, frame):
 
     execute_command = True
     print(vmu931_utils.IMU_Instructions)
-
-    if OLD_PYTHON:
-        command = raw_input("Please Enter One of the Listed Commands: ")
-    else:
-        command = input("Please Enter One of the Listed Commands: ")
+    command = input("Please Enter One of the Listed Commands: ")
 
     if command is not None:
         command = command.lower()

@@ -5,7 +5,9 @@ import serial
 
 """
 VMU931 Ref Guide: http://variense.com/Docs/VMU931/VMU931_UserGuide.pdf
-Adapted from: https://github.com/JosephRedfern/PyVMU
+
+Adapted from: https://github.com/JosephRedfern/PyVMU - Credit to: Joseph Redfern
+    - License: https://raw.githubusercontent.com/JosephRedfern/PyVMU/master/LICENSE.txt
 """
 
 # VMU931 Terminal/Command Prompt instructions

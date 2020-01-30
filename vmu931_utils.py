@@ -132,7 +132,7 @@ def toggle_imu_interface(serial_device, interface  # type: str
 
 
 def can_set_imu_interface_resolution():
-    if Device_Status is not None:
+    if Device_Status is None:
         print("Device Status is None")
         return False
 
